@@ -24,6 +24,7 @@ pub struct DaemonStatus {
 
 pub struct RpcManager {
     config: Arc<RwLock<AppConfig>>,
+    default_client_id: String,
     process_watcher: ProcessWatcher,
     game_resolver: GameResolver,
     discord_ipc: DiscordIpcClient,
@@ -32,18 +33,19 @@ pub struct RpcManager {
 }
 
 impl RpcManager {
-    pub fn new(config: Arc<RwLock<AppConfig>>, cache: Arc<MetadataCache>) -> Self {
-        let conf_guard = {
-            let rt = tokio::runtime::Handle::current();
-            rt.block_on(async { config.read().await.clone() })
-        };
-
+    pub fn new(
+        config: Arc<RwLock<AppConfig>>,
+        initial_config: &AppConfig,
+        cache: Arc<MetadataCache>,
+    ) -> Self {
         let process_watcher = ProcessWatcher::new();
-        let game_resolver = GameResolver::new(&conf_guard, cache);
+        let game_resolver = GameResolver::new(initial_config, cache);
         let discord_ipc = DiscordIpcClient::new();
+        let default_client_id = initial_config.general.default_client_id.clone();
 
         Self {
             config,
+            default_client_id,
             process_watcher,
             game_resolver,
             discord_ipc,
@@ -66,6 +68,7 @@ impl RpcManager {
     }
 
     pub async fn update_config(&mut self, new_config: AppConfig, cache: Arc<MetadataCache>) {
+        self.default_client_id = new_config.general.default_client_id.clone();
         self.game_resolver = GameResolver::new(&new_config, cache);
         *self.config.write().await = new_config;
         info!("RPC Manager updated configuration");
@@ -270,11 +273,7 @@ impl RpcManager {
 
         let active_mode = match (self.current_game_proc.is_some(), &client_id) {
             (true, Some(cid)) => {
-                let conf = {
-                    let rt = tokio::runtime::Handle::current();
-                    rt.block_on(async { self.config.read().await.clone() })
-                };
-                if cid == &conf.general.default_client_id {
+                if cid == &self.default_client_id {
                     "Shared Mode".to_string()
                 } else {
                     "Per-Game Mode".to_string()

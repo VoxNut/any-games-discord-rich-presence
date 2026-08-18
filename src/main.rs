@@ -190,7 +190,7 @@ async fn main() -> Result<()> {
     info!("Cache directory: {:?}", cache_dir);
 
     let config_arc = Arc::new(RwLock::new(app_config.clone()));
-    let mut manager = RpcManager::new(config_arc.clone(), cache.clone());
+    let mut manager = RpcManager::new(config_arc.clone(), &app_config, cache.clone());
 
     if cli.headless {
         info!("Running in Headless Mode (no tray icon)");
