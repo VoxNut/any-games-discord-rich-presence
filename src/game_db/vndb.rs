@@ -24,13 +24,26 @@ struct VndbSearchResponse {
 }
 
 #[derive(Debug, Deserialize)]
+struct VndbTitleEntry {
+    #[serde(default)]
+    lang: Option<String>,
+    title: String,
+    #[allow(dead_code)]
+    #[serde(default)]
+    latin: Option<String>,
+    #[serde(default)]
+    main: Option<bool>,
+}
+
+#[derive(Debug, Deserialize)]
 struct VndbVnEntry {
     #[allow(dead_code)]
     id: String,
     title: String,
     #[serde(default)]
-    #[allow(dead_code)]
     alttitle: Option<String>,
+    #[serde(default)]
+    titles: Option<Vec<VndbTitleEntry>>,
     image: Option<VndbImage>,
 }
 
@@ -70,13 +83,17 @@ impl VndbClient {
         headers
     }
 
-    /// Search VNDB for a visual novel by title and retrieve its cover image
-    pub async fn resolve_game(&self, search_term: &str) -> Result<Option<VndbGameInfo>> {
+    /// Search VNDB for a visual novel by title and retrieve its display name and cover image
+    pub async fn resolve_game(
+        &self,
+        search_term: &str,
+        prefer_original_title: bool,
+    ) -> Result<Option<VndbGameInfo>> {
         let endpoint = "https://api.vndb.org/kana/vn";
 
         let body = VndbSearchRequest {
             filters: vec!["search", "=", search_term],
-            fields: "title, alttitle, image.url",
+            fields: "title, alttitle, titles.lang, titles.title, titles.latin, titles.main, image.url",
             results: 1,
         };
 
@@ -102,7 +119,23 @@ impl VndbClient {
             .context("Failed to parse VNDB JSON response")?;
 
         if let Some(vn) = search_res.results.into_iter().next() {
-            let display_name = vn.title;
+            let display_name = if prefer_original_title {
+                // 1. Try to find the Japanese title or main native title from titles list
+                let from_titles = vn.titles.as_ref().and_then(|list| {
+                    list.iter()
+                        .find(|t| t.lang.as_deref() == Some("ja") && !t.title.trim().is_empty())
+                        .or_else(|| list.iter().find(|t| t.main == Some(true) && !t.title.trim().is_empty()))
+                        .map(|t| t.title.clone())
+                });
+
+                // 2. Try alttitle (typically the original Japanese script title)
+                from_titles
+                    .or_else(|| vn.alttitle.filter(|alt| !alt.trim().is_empty()))
+                    .unwrap_or(vn.title)
+            } else {
+                vn.title
+            };
+
             let image_url = vn.image.and_then(|img| img.url);
 
             debug!("VNDB match found: '{}' (Cover: {:?})", display_name, image_url);

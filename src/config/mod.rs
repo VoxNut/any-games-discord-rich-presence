@@ -41,6 +41,10 @@ pub struct GeneralConfig {
     #[serde(default = "default_poll_interval_secs")]
     pub poll_interval_secs: u64,
 
+    /// Prefer original native title (e.g. Japanese Kanji/Kana like "彼岸花の咲く夜に") over Romaji ("Higanbana no Saku Yoru ni")
+    #[serde(default = "default_true")]
+    pub prefer_original_title: bool,
+
     /// Default details string template when in Shared Mode.
     /// Available variables: {game_title}
     #[serde(default = "default_shared_details")]
@@ -116,7 +120,6 @@ pub struct GameOverride {
 }
 
 fn default_client_id() -> String {
-    // Default shared Client ID
     "1539094427459649686".to_string()
 }
 
@@ -173,6 +176,7 @@ impl Default for GeneralConfig {
         Self {
             default_client_id: default_client_id(),
             poll_interval_secs: default_poll_interval_secs(),
+            prefer_original_title: true,
             shared_details_template: default_shared_details(),
             shared_state_template: default_shared_state(),
             show_elapsed_time: true,
@@ -278,12 +282,13 @@ impl AppConfig {
 [general]
 # Default Discord Application Client ID used for Shared Mode (Zero Setup).
 # In Shared Mode, Discord displays "Playing <App Name>", Details = "<Game Name>", Large Image = Cover Art.
-# You can replace this with your own Discord Application Client ID created at:
-# https://discord.com/developers/applications
 default_client_id = "1539094427459649686"
 
 # Polling frequency in seconds to check for active game processes (default: 3)
 poll_interval_secs = 3
+
+# Prefer original Japanese / native title (e.g. "彼岸花の咲く夜に") over Romanized title (default: true)
+prefer_original_title = true
 
 # Show elapsed playtime timer (default: true)
 show_elapsed_time = true
@@ -298,12 +303,10 @@ shared_state_template = "Reading / In-Game"
 # VNDB (The Visual Novel Database) Token (from https://vndb.org/u/tokens)
 vndb_token = ""
 
-# SteamGridDB API Key (Recommended for general game cover art lookups)
-# Get a free key at: https://www.steamgriddb.com/profile/preferences/api
+# SteamGridDB API Key (for general game cover art lookups)
 steamgriddb_api_key = ""
 
 # IGDB / Twitch API Credentials (Optional alternative metadata provider)
-# Get credentials at: https://dev.twitch.tv/console/apps
 igdb_client_id = ""
 igdb_client_secret = ""
 
@@ -324,28 +327,21 @@ ignored_processes = [
 # ==============================================================================
 # PER-GAME CONFIGURATION & OVERRIDES
 # ==============================================================================
-# You can define custom behavior for any game executable (with or without .exe).
+# You can define custom behavior for any game / VN executable (with or without .exe).
 
-# Example 1: Shared Mode with custom display name and image
-# [games.eldenring]
-# display_name = "Elden Ring: Shadow of the Erdtree"
-# image_url = "https://images.igdb.com/igdb/image/upload/t_cover_big/co49x5.jpg"
-# state = "Exploring the Lands Between"
-# button_1_label = "Game Info"
-# button_1_url = "https://en.bandainamcoent.eu/elden-ring/elden-ring"
+# Example 1: Shared Mode override with custom image
+# [games.eden]
+# display_name = "eden* They Were Only Two, on the Planet"
+# image_url = "https://t.vndb.org/cv/98/998.jpg"
+# state = "Reading Chapter 3"
 
 # Example 2: Per-Game Mode (Power User)
-# Set your own Discord Application Client ID so the header says "Playing Hollow Knight"
-# [games.hollow_knight]
+# Set your own Discord Application Client ID so the header says "Playing Steins;Gate"
+# [games.steinsgate]
 # client_id = "123456789012345678"
-# display_name = "Hollow Knight"
-# details = "Exploring Hallownest"
-# state = "Steel Soul Mode"
-# image_url = "https://cdn2.steamgriddb.com/grid/6cf6c986c753b879c3886f4a860b86a8.png"
-
-# Example 3: Ignore a specific binary
-# [games.benchmark_tool]
-# ignore = true
+# display_name = "STEINS;GATE"
+# details = "Visual Novel"
+# state = "El Psy Kongroo"
 "#
     }
 }

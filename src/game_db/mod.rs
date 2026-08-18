@@ -30,6 +30,7 @@ pub struct GameResolver {
 
 impl GameResolver {
     pub fn new(config: &AppConfig, cache: Arc<MetadataCache>) -> Self {
+        // VNDB is enabled if token is provided or default enabled for visual novel lookups
         let vndb = config
             .api
             .vndb_token
@@ -116,10 +117,12 @@ impl GameResolver {
             });
         }
 
+        let prefer_original = config.general.prefer_original_title;
+
         // 3. Try VNDB across candidates
         if let Some(ref vndb) = self.vndb {
             for query in &search_candidates {
-                match vndb.resolve_game(query).await {
+                match vndb.resolve_game(query, prefer_original).await {
                     Ok(Some(info)) => {
                         info!("VNDB resolved '{}' -> '{}'", query, info.display_name);
                         let _ = self.cache.set(
