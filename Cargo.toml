@@ -1,6 +1,37 @@
 [package]
 name = "any-games-discord-rich-presence"
 version = "0.1.0"
-edition = "2024"
+edition = "2021"
+description = "A lightweight Rust desktop daemon for generic Discord Rich Presence across any game"
+authors = ["VoxNut"]
+license = "MIT"
 
 [dependencies]
+# Async Runtime & Networking
+tokio = { version = "1.43", features = ["full"] }
+reqwest = { version = "0.12", features = ["json"] }
+urlencoding = "2.1"
+
+# Process & System Monitoring
+sysinfo = "0.33"
+
+# Serialization & Config
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+toml = "0.8"
+
+# Cache & Storage
+rusqlite = { version = "0.33", features = ["bundled"] }
+
+# OS Integration & Tray
+directories = "6.0"
+tray-icon = "0.24"
+winit = "0.30"
+open = "5.3"
+
+# CLI & Diagnostics
+clap = { version = "4.5", features = ["derive"] }
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+anyhow = "1.0"
+thiserror = "2.0"

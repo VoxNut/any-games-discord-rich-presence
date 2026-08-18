@@ -1,0 +1,79 @@
+# ==============================================================================
+# Any Game Discord Rich Presence Daemon - Configuration Template
+# ==============================================================================
+
+[general]
+# Default Discord Application Client ID used for Shared Mode (Zero Setup).
+# In Shared Mode, Discord displays "Playing <App Name>", Details = "<Game Name>", Large Image = Cover Art.
+# Create your own application at https://discord.com/developers/applications or use your existing Client ID.
+default_client_id = "1340987654321098765"
+
+# Polling frequency in seconds to check for active game processes (default: 3)
+poll_interval_secs = 3
+
+# Show elapsed playtime timer (default: true)
+show_elapsed_time = true
+
+# Template for Shared Mode details line ({game_title} will be replaced with detected title)
+shared_details_template = "{game_title}"
+
+# Template for Shared Mode state line
+shared_state_template = "In-Game"
+
+[api]
+# SteamGridDB API Key (Recommended for automatic cover art lookups)
+# Get a free key at: https://www.steamgriddb.com/profile/preferences/api
+steamgriddb_api_key = ""
+
+# IGDB / Twitch API Credentials (Optional alternative metadata provider)
+# Get credentials at: https://dev.twitch.tv/console/apps
+igdb_client_id = ""
+igdb_client_secret = ""
+
+# List of process executables to ignore (case-insensitive)
+ignored_processes = [
+    "explorer.exe",
+    "chrome.exe",
+    "firefox.exe",
+    "msedge.exe",
+    "brave.exe",
+    "opera.exe",
+    "discord.exe",
+    "discordcanary.exe",
+    "discordptb.exe",
+    "spotify.exe",
+    "code.exe",
+    "cursor.exe",
+    "steam.exe",
+    "steamwebhelper.exe",
+    "epicgameslauncher.exe",
+    "galaxyclient.exe",
+    "eadesktop.exe"
+]
+
+# ==============================================================================
+# PER-GAME CONFIGURATION & OVERRIDES
+# ==============================================================================
+# You can define custom behavior for any game executable (with or without .exe).
+
+# Example 1: Shared Mode with custom display name, cover image, and clickable buttons
+[games.eldenring]
+display_name = "Elden Ring: Shadow of the Erdtree"
+image_url = "https://images.igdb.com/igdb/image/upload/t_cover_big/co49x5.jpg"
+state = "Exploring the Lands Between"
+button_1_label = "Official Website"
+button_1_url = "https://en.bandainamcoent.eu/elden-ring/elden-ring"
+
+# Example 2: Per-Game Mode (Power User)
+# Set your own Discord Application Client ID registered as "Hollow Knight"
+# so Discord status header displays "Playing Hollow Knight"
+[games.hollow_knight]
+client_id = "123456789012345678"
+display_name = "Hollow Knight"
+details = "Exploring Hallownest"
+state = "Steel Soul Mode"
+image_url = "https://cdn2.steamgriddb.com/grid/6cf6c986c753b879c3886f4a860b86a8.png"
+
+# Example 3: Blacklist / Ignore a specific binary
+[games.benchmark_tool]
+ignore = true
