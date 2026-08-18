@@ -1,6 +1,7 @@
 pub mod igdb;
 pub mod sanitizer;
 pub mod steamgriddb;
+pub mod vndb;
 
 use crate::cache::MetadataCache;
 use crate::config::AppConfig;
@@ -8,6 +9,7 @@ use anyhow::Result;
 use igdb::IgdbClient;
 use sanitizer::sanitize_to_display_title;
 use steamgriddb::SteamGridDbClient;
+use vndb::VndbClient;
 use std::sync::Arc;
 use tracing::{debug, info, warn};
 
@@ -21,12 +23,21 @@ pub struct GameMetadata {
 
 pub struct GameResolver {
     cache: Arc<MetadataCache>,
+    vndb: Option<VndbClient>,
     steamgriddb: Option<SteamGridDbClient>,
     igdb: Option<IgdbClient>,
 }
 
 impl GameResolver {
     pub fn new(config: &AppConfig, cache: Arc<MetadataCache>) -> Self {
+        // VNDB is enabled if token is provided or default enabled for visual novel lookups
+        let vndb = config
+            .api
+            .vndb_token
+            .as_ref()
+            .map(|tok| VndbClient::new(Some(tok.clone())))
+            .or_else(|| Some(VndbClient::new(None)));
+
         let steamgriddb = config
             .api
             .steamgriddb_api_key
@@ -43,12 +54,13 @@ impl GameResolver {
 
         Self {
             cache,
+            vndb,
             steamgriddb,
             igdb,
         }
     }
 
-    /// Resolve metadata for a game executable (e.g. "eldenring.exe" or "hollow_knight")
+    /// Resolve metadata for a game executable (e.g. "eden.exe", "hollow_knight", "steinsgate")
     pub async fn resolve(&self, exe_name: &str, clean_name: &str, config: &AppConfig) -> Result<GameMetadata> {
         // 1. Check manual config override first
         if let Some(game_ov) = config.find_game_override(exe_name) {
@@ -79,7 +91,35 @@ impl GameResolver {
         // Sanitized search query
         let search_query = sanitize_to_display_title(clean_name);
 
-        // 3. Try SteamGridDB (if key is configured)
+        // 3. Try VNDB first (Visual Novel Database)
+        if let Some(ref vndb) = self.vndb {
+            match vndb.resolve_game(&search_query).await {
+                Ok(Some(info)) => {
+                    info!("VNDB resolved '{}' -> '{}'", clean_name, info.display_name);
+                    let _ = self.cache.set(
+                        clean_name,
+                        &info.display_name,
+                        info.image_url.as_deref(),
+                        None,
+                        "vndb",
+                    );
+                    return Ok(GameMetadata {
+                        display_name: info.display_name,
+                        image_url: info.image_url,
+                        small_image_url: None,
+                        source: "vndb".to_string(),
+                    });
+                }
+                Ok(None) => {
+                    debug!("VNDB found no match for query '{}'", search_query);
+                }
+                Err(e) => {
+                    warn!("VNDB lookup error for '{}': {:#}", search_query, e);
+                }
+            }
+        }
+
+        // 4. Try SteamGridDB (if key is configured)
         if let Some(ref sgdb) = self.steamgriddb {
             match sgdb.resolve_game(&search_query).await {
                 Ok(Some(info)) => {
@@ -107,7 +147,7 @@ impl GameResolver {
             }
         }
 
-        // 4. Try IGDB (if configured)
+        // 5. Try IGDB (if configured)
         if let Some(ref igdb) = self.igdb {
             match igdb.resolve_game(&search_query).await {
                 Ok(Some(info)) => {
@@ -135,7 +175,7 @@ impl GameResolver {
             }
         }
 
-        // 5. Fallback: Sanitized title with no cover art
+        // 6. Fallback: Sanitized title with no cover art
         let fallback_title = sanitize_to_display_title(clean_name);
         info!("Using fallback sanitized title '{}' for '{}'", fallback_title, clean_name);
         let _ = self.cache.set(

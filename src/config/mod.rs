@@ -58,6 +58,9 @@ pub struct GeneralConfig {
 
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct ApiConfig {
+    /// VNDB (The Visual Novel Database) API Token (from https://vndb.org/u/tokens)
+    pub vndb_token: Option<String>,
+
     /// SteamGridDB API key (get one from https://www.steamgriddb.com/profile/preferences/api)
     pub steamgriddb_api_key: Option<String>,
 
@@ -113,9 +116,8 @@ pub struct GameOverride {
 }
 
 fn default_client_id() -> String {
-    // Default shared Client ID ("Any Game RPC")
-    // Users can use this shared application or configure their own in config.toml
-    "1340987654321098765".to_string()
+    // Default shared Client ID
+    "1539094427459649686".to_string()
 }
 
 fn default_poll_interval_secs() -> u64 {
@@ -127,7 +129,7 @@ fn default_shared_details() -> String {
 }
 
 fn default_shared_state() -> String {
-    "In-Game".to_string()
+    "Reading / In-Game".to_string()
 }
 
 fn default_true() -> bool {
@@ -278,7 +280,7 @@ impl AppConfig {
 # In Shared Mode, Discord displays "Playing <App Name>", Details = "<Game Name>", Large Image = Cover Art.
 # You can replace this with your own Discord Application Client ID created at:
 # https://discord.com/developers/applications
-default_client_id = "1340987654321098765"
+default_client_id = "1539094427459649686"
 
 # Polling frequency in seconds to check for active game processes (default: 3)
 poll_interval_secs = 3
@@ -290,10 +292,13 @@ show_elapsed_time = true
 shared_details_template = "{game_title}"
 
 # Template for Shared Mode state line
-shared_state_template = "In-Game"
+shared_state_template = "Reading / In-Game"
 
 [api]
-# SteamGridDB API Key (Recommended for automatic cover art lookups)
+# VNDB (The Visual Novel Database) Token (from https://vndb.org/u/tokens)
+vndb_token = ""
+
+# SteamGridDB API Key (Recommended for general game cover art lookups)
 # Get a free key at: https://www.steamgriddb.com/profile/preferences/api
 steamgriddb_api_key = ""
 

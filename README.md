@@ -1,15 +1,16 @@
 # Any Game Discord Rich Presence Daemon (Rust)
 
-A high-performance, lightweight Rust desktop daemon that automatically displays **Discord Rich Presence for any game**, including games Discord has no official integration for.
+A high-performance, lightweight Rust desktop daemon that automatically displays **Discord Rich Presence for any game & Visual Novel**, including games Discord has no official integration for.
 
-Runs quietly in the background, watches running processes, queries game metadata & high-resolution cover art (SteamGridDB / IGDB), caches results locally in embedded SQLite, and streams presence updates via Discord's local IPC named pipe / Unix domain socket.
+Runs quietly in the background, watches running processes, queries metadata & high-resolution cover art (**VNDB** / **SteamGridDB** / **IGDB**), caches results locally in embedded SQLite, and streams presence updates via Discord's local IPC named pipe / Unix domain socket.
 
 ---
 
 ## Features
 
-- 🎮 **Universal Game Detection**: Automatically tracks launched games using low-CPU process polling (`sysinfo`) and smart binary name sanitization.
-- 🎨 **Live Remote Cover Art**: Uses direct HTTPS image URLs (`assets.large_image`) from **SteamGridDB** and **IGDB** without pre-uploading assets to Discord Developer Portal.
+- 🎮 **Universal Game & Visual Novel Detection**: Automatically tracks launched games and VNs using low-CPU process polling (`sysinfo`) and smart binary name sanitization.
+- 📖 **VNDB (Visual Novel Database) Integration**: Direct integration with VNDB's Kana API v2 for instant visual novel identification and official cover art.
+- 🎨 **Live Remote Cover Art**: Uses direct HTTPS image URLs (`assets.large_image`) from **VNDB**, **SteamGridDB**, and **IGDB** without pre-uploading assets to Discord Developer Portal.
 - ⚡ **Dual Client ID Modes**:
   - **Shared Mode (Default / Zero Setup)**: Uses a shared Discord Application ID. Displays the game title in `details`, live metadata/custom text in `state`, and high-res cover art.
   - **Per-Game Mode (Power User)**: Register a Discord Application per game and configure its Client ID in `config.toml` so the header displays `"Playing <Game Name>"`. The daemon automatically swaps Client IDs upon game launch.
@@ -58,22 +59,24 @@ Discord Rich Presence requires a **Client ID** from the Discord Developer Portal
 2. Click **New Application**.
 3. Give your application a name:
    - For **Shared Mode**, name it something generic like `Any Game RPC` or `Game Launcher`.
-   - For **Per-Game Mode**, name it the exact name of the game (e.g. `Hollow Knight` or `Elden Ring`).
+   - For **Per-Game Mode**, name it the exact name of the game (e.g. `Hollow Knight` or `Steins;Gate`).
 4. Copy the **Application ID** (Client ID) from the **General Information** page.
 5. Paste it into `config.toml` under `general.default_client_id` or your game override `[games.<name>].client_id`.
 
-### 2. SteamGridDB API Key (Recommended)
-SteamGridDB provides free access to high-quality cover art grids and game icons:
-1. Sign in to [SteamGridDB](https://www.steamgriddb.com/).
-2. Navigate to your [Preferences -> API](https://www.steamgriddb.com/profile/preferences/api).
-3. Generate an API Key.
-4. Add it to `config.toml` under `[api].steamgriddb_api_key`.
+### 2. VNDB API Token (Visual Novel Database)
+1. Sign in to [VNDB](https://vndb.org/).
+2. Go to your **Profile -> Applications** or visit [https://vndb.org/u/tokens](https://vndb.org/u/tokens).
+3. Create a token and paste it into `config.toml` under `[api].vndb_token`.
 
-### 3. IGDB API Credentials (Optional)
+### 3. SteamGridDB API Key (Recommended for PC Games)
+1. Sign in to [SteamGridDB](https://www.steamgriddb.com/).
+2. Navigate to [Preferences -> API](https://www.steamgriddb.com/profile/preferences/api).
+3. Generate an API Key and add it to `config.toml` under `[api].steamgriddb_api_key`.
+
+### 4. IGDB API Credentials (Optional)
 1. Log in to the [Twitch Developer Console](https://dev.twitch.tv/console/apps).
-2. Register a new application (Category: *Application Integration*, OAuth Redirect URL: `http://localhost`).
-3. Copy the **Client ID** and generate a **Client Secret**.
-4. Add them to `config.toml` under `[api].igdb_client_id` and `[api].igdb_client_secret`.
+2. Register a new application (OAuth Redirect URL: `http://localhost`).
+3. Copy the **Client ID** and **Client Secret** into `config.toml` under `[api].igdb_client_id` and `[api].igdb_client_secret`.
 
 ---
 
@@ -81,13 +84,14 @@ SteamGridDB provides free access to high-quality cover art grids and game icons:
 
 ```toml
 [general]
-default_client_id = "1340987654321098765"
+default_client_id = "1539094427459649686"
 poll_interval_secs = 3
 show_elapsed_time = true
 shared_details_template = "{game_title}"
-shared_state_template = "In-Game"
+shared_state_template = "Reading / In-Game"
 
 [api]
+vndb_token = "your_vndb_token_here"
 steamgriddb_api_key = "your_steamgriddb_api_key_here"
 igdb_client_id = ""
 igdb_client_secret = ""
@@ -141,36 +145,18 @@ Options:
 ```
 
 ### Diagnostic Examples
-- Scan running game processes:
+- Test VNDB Visual Novel lookup:
   ```bash
-  cargo run -- --test-scan
+  cargo run -- --test-lookup "Steins;Gate"
   ```
-- Test cover art lookup for a game:
+- Test general game cover art lookup:
   ```bash
   cargo run -- --test-lookup "witcher3.exe"
   ```
 - Send a 10-second test presence to Discord:
   ```bash
-  cargo run -- --test-presence "Hollow Knight"
+  cargo run -- --test-presence "Tsukihime"
   ```
-
----
-
-## Troubleshooting
-
-### Discord Not Detected / Connection Dropped
-- Ensure Discord Desktop is running locally before or during daemon operation.
-- On Linux, if using Flatpak or Snap, ensure the daemon has access to `$XDG_RUNTIME_DIR/app/com.discordapp.Discord` or `/tmp`.
-
-### Cover Art Not Showing
-- Verify your SteamGridDB API key in `config.toml`.
-- Discord supports direct HTTPS URLs (`png`, `jpg`, `webp`, `gif`). Make sure URLs are publicly reachable HTTPS endpoints.
-- If using manual `image_url` overrides, ensure the URL begins with `https://`.
-
-### Executable Not Recognized
-- Run `--test-scan` while the game is running to see if the process is detected.
-- If the game is ignored, check the `ignored_processes` list in `config.toml`.
-- You can add an explicit entry under `[games.<executable_name>]` in `config.toml`.
 
 ---
 
