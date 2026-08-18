@@ -12,6 +12,7 @@ pub struct GameProcess {
     pub exe_name: String,
     pub clean_name: String,
     pub exe_path: Option<PathBuf>,
+    pub folder_name: Option<String>,
     pub start_time: u64,
 }
 
@@ -80,7 +81,6 @@ impl ProcessWatcher {
                 }
             }
 
-            // Check if explicitly configured or is a recognized game candidate
             let clean = clean_executable_name(&raw_name);
             if clean.is_empty() {
                 continue;
@@ -95,6 +95,12 @@ impl ProcessWatcher {
                     .as_secs()
             };
 
+            let folder_name = exe_path.as_ref().and_then(|p| {
+                p.parent().and_then(|parent| {
+                    parent.file_name().map(|f| f.to_string_lossy().to_string())
+                })
+            });
+
             // If explicitly configured in config.games (and not ignored), or candidate
             let is_explicit = config.find_game_override(&raw_name).is_some();
             let is_heuristic_candidate = is_likely_game(&raw_name, exe_path.as_deref());
@@ -107,6 +113,7 @@ impl ProcessWatcher {
                         exe_name: raw_name,
                         clean_name: clean,
                         exe_path,
+                        folder_name,
                         start_time,
                     },
                 );
@@ -188,11 +195,24 @@ pub fn clean_executable_name(raw: &str) -> String {
     stripped.to_string()
 }
 
-/// Heuristically determine if a process is likely a game
+/// Heuristically determine if a process is likely a game or visual novel
 fn is_likely_game(exe_name: &str, exe_path: Option<&Path>) -> bool {
     let lower = exe_name.to_lowercase();
+    let stem = lower.trim_end_matches(".exe");
 
-    // Check path for common game libraries or directories
+    // Check known VN engine executable names
+    let known_vn_engines = [
+        "sysheep", "krkr", "tvpwin32", "rio", "siglusengine", "reallive", "advhd",
+        "bgi", "sysengine", "cs2", "majirov3", "artemis", "onscripter", "nscripter",
+        "yu-ris", "ysbin", "systemnnn", "buriko", "entis", "anex", "br",
+        "live", "malie", "qlie", "advengine", "scenario",
+    ];
+
+    if known_vn_engines.contains(&stem) {
+        return true;
+    }
+
+    // Check path for common game & VN directories
     if let Some(path) = exe_path {
         let p = path.to_string_lossy().to_lowercase();
         if p.contains("steamapps\\common")
@@ -203,6 +223,14 @@ fn is_likely_game(exe_name: &str, exe_path: Option<&Path>) -> bool {
             || p.contains("ea games")
             || p.contains("xboxgames")
             || p.contains("riot games")
+            || p.contains("visual novel")
+            || p.contains("visual novels")
+            || p.contains("galgame")
+            || p.contains("eroge")
+            || p.contains("dlsite")
+            || p.contains("dmm")
+            || p.contains("fanza")
+            || p.contains("novels")
             || p.contains("\\games\\")
             || p.contains("/games/")
         {

@@ -107,14 +107,14 @@ async fn main() -> Result<()> {
             println!("No running game candidates detected.");
             println!("(Tip: If your game is running, check if it's in 'ignored_processes' in config.toml)");
         } else {
-            println!("{:<8} {:<30} {:<30} {:<30}", "PID", "EXECUTABLE", "CLEAN NAME", "PATH");
+            println!("{:<8} {:<25} {:<25} {:<40}", "PID", "EXECUTABLE", "CLEAN NAME", "PATH");
             println!("{:-<100}", "");
             for c in candidates {
                 let path_str = c
                     .exe_path
                     .map(|p| p.to_string_lossy().to_string())
                     .unwrap_or_else(|| "N/A".to_string());
-                println!("{:<8} {:<30} {:<30} {:<30}", c.pid, c.exe_name, c.clean_name, path_str);
+                println!("{:<8} {:<25} {:<25} {:<40}", c.pid, c.exe_name, c.clean_name, path_str);
             }
         }
         return Ok(());
@@ -124,7 +124,7 @@ async fn main() -> Result<()> {
         println!("Testing metadata resolution for: '{}'...\n", title);
         let resolver = GameResolver::new(&app_config, cache.clone());
         let clean = process::clean_executable_name(title);
-        let metadata = resolver.resolve(title, &clean, &app_config).await?;
+        let metadata = resolver.resolve(title, &clean, None, &app_config).await?;
 
         println!("Resolved Game Metadata:");
         println!("  Display Name: {}", metadata.display_name);
@@ -151,7 +151,7 @@ async fn main() -> Result<()> {
 
         let activity = ActivityPayload {
             details: Some(title.clone()),
-            state: Some("Testing Generic RPC Daemon".to_string()),
+            state: Some("Reading / In-Game".to_string()),
             timestamps: Some(ActivityTimestamps {
                 start: Some(
                     std::time::SystemTime::now()
@@ -162,7 +162,7 @@ async fn main() -> Result<()> {
             }),
             assets: Some(ActivityAssets {
                 large_image: cli.cover_url.or_else(|| {
-                    Some("https://cdn2.steamgriddb.com/grid/6cf6c986c753b879c3886f4a860b86a8.png".to_string())
+                    Some("https://t.vndb.org/cv/31/21731.jpg".to_string())
                 }),
                 large_text: Some(title.clone()),
                 small_image: None,

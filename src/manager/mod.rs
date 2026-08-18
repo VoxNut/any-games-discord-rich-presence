@@ -111,10 +111,15 @@ impl RpcManager {
             _ => (config.general.default_client_id.clone(), false),
         };
 
-        // Resolve Metadata
+        // Resolve Metadata using exe name and parent folder
         let metadata = match self
             .game_resolver
-            .resolve(&proc.exe_name, &proc.clean_name, config)
+            .resolve(
+                &proc.exe_name,
+                &proc.clean_name,
+                proc.folder_name.as_deref(),
+                config,
+            )
             .await
         {
             Ok(meta) => meta,
@@ -168,7 +173,7 @@ impl RpcManager {
             let d = game_ov.and_then(|ov| ov.details.clone());
             let s = game_ov
                 .and_then(|ov| ov.state.clone())
-                .or_else(|| Some("In-Game".to_string()));
+                .or_else(|| Some("Reading / In-Game".to_string()));
             (d, s)
         } else {
             // Shared Mode: Details shows real Game Title
